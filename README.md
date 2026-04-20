@@ -58,6 +58,11 @@ This project changes the use case into a personal finance habit tracker. Each re
 
 The project is not only a basic CRUD smart contract. It includes transaction categorization, monthly cash flow calculation, and a simple financial insight layer.
 
+
+## Contract ID
+CCAVEX2DBQJEOLPLXJA726U6GKLMOHZJXA6J2VQLJUCUJVOORUVNSV6S
+
+
 ## Financial Health Score
 
 The app calculates a simple financial health score based on monthly saving rate.
