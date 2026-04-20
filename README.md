@@ -62,10 +62,13 @@ The project is not only a basic CRUD smart contract. It includes transaction cat
 
 The app calculates a simple financial health score based on monthly saving rate.
 
+
+<img width="1460" height="624" alt="image" src="https://github.com/user-attachments/assets/f3258671-3f54-49eb-a6ef-68ab6d948a49" />
+
+
 Formula:
 
 ```text
 saving_rate = balance / total_income x 100
 
 
-<img width="1460" height="624" alt="image" src="https://github.com/user-attachments/assets/89c8bafe-2908-4bb2-adf1-2e5d0265dca6" />
