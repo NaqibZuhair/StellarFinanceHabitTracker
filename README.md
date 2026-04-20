@@ -68,4 +68,4 @@ Formula:
 saving_rate = balance / total_income x 100
 
 
-<img width="1541" height="606" alt="image" src="https://github.com/user-attachments/assets/e9a75840-0b76-4fd1-a24c-c83a1ce736ad" />
+<img width="1460" height="624" alt="image" src="https://github.com/user-attachments/assets/89c8bafe-2908-4bb2-adf1-2e5d0265dca6" />
