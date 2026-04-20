@@ -4,7 +4,6 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol, Vec,
 };
 
-// Struktur data untuk menyimpan transaksi finance
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct Transaction {
@@ -17,7 +16,6 @@ pub struct Transaction {
     pub period: u32,
 }
 
-// Struktur data untuk ringkasan bulanan
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct Summary {
@@ -26,7 +24,14 @@ pub struct Summary {
     pub balance: i128,
 }
 
-// Storage key
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct HealthInsight {
+    pub saving_rate: i128,
+    pub score: u32,
+    pub status: String,
+}
+
 const TRANSACTION_DATA: Symbol = symbol_short!("TX_DATA");
 const NEXT_ID: Symbol = symbol_short!("NEXT_ID");
 
@@ -35,16 +40,6 @@ pub struct FinanceContract;
 
 #[contractimpl]
 impl FinanceContract {
-    // Fungsi untuk mendapatkan semua transaksi
-    pub fn get_transactions(env: Env) -> Vec<Transaction> {
-        return env
-            .storage()
-            .instance()
-            .get(&TRANSACTION_DATA)
-            .unwrap_or(Vec::new(&env));
-    }
-
-    // Fungsi untuk menambahkan transaksi baru
     pub fn add_transaction(
         env: Env,
         owner: Address,
@@ -64,17 +59,18 @@ impl FinanceContract {
             return String::from_str(&env, "Kind harus 1 income atau 2 expense");
         }
 
-        // 1. ambil data transaksi lama dari storage
         let mut transactions: Vec<Transaction> = env
             .storage()
             .instance()
             .get(&TRANSACTION_DATA)
             .unwrap_or(Vec::new(&env));
 
-        // 2. ambil id berikutnya
-        let next_id: u64 = env.storage().instance().get(&NEXT_ID).unwrap_or(1);
+        let next_id: u64 = env
+            .storage()
+            .instance()
+            .get(&NEXT_ID)
+            .unwrap_or(1);
 
-        // 3. buat object transaksi baru
         let transaction = Transaction {
             id: next_id,
             owner,
@@ -85,21 +81,47 @@ impl FinanceContract {
             period,
         };
 
-        // 4. tambahkan transaksi baru ke data lama
         transactions.push_back(transaction);
 
-        // 5. simpan transaksi ke storage
         env.storage()
             .instance()
             .set(&TRANSACTION_DATA, &transactions);
 
-        // 6. simpan id berikutnya
-        env.storage().instance().set(&NEXT_ID, &(next_id + 1));
+        env.storage()
+            .instance()
+            .set(&NEXT_ID, &(next_id + 1));
 
         return String::from_str(&env, "Transaksi berhasil ditambahkan");
     }
 
-    // Fungsi untuk mengubah transaksi berdasarkan id
+    pub fn get_transactions(env: Env) -> Vec<Transaction> {
+        return env
+            .storage()
+            .instance()
+            .get(&TRANSACTION_DATA)
+            .unwrap_or(Vec::new(&env));
+    }
+
+    pub fn get_transactions_by_owner(env: Env, owner: Address) -> Vec<Transaction> {
+        let transactions: Vec<Transaction> = env
+            .storage()
+            .instance()
+            .get(&TRANSACTION_DATA)
+            .unwrap_or(Vec::new(&env));
+
+        let mut result: Vec<Transaction> = Vec::new(&env);
+
+        for i in 0..transactions.len() {
+            let transaction = transactions.get(i).unwrap();
+
+            if transaction.owner == owner {
+                result.push_back(transaction);
+            }
+        }
+
+        return result;
+    }
+
     pub fn update_transaction(
         env: Env,
         owner: Address,
@@ -120,14 +142,12 @@ impl FinanceContract {
             return String::from_str(&env, "Kind harus 1 income atau 2 expense");
         }
 
-        // 1. ambil data transaksi dari storage
         let mut transactions: Vec<Transaction> = env
             .storage()
             .instance()
             .get(&TRANSACTION_DATA)
             .unwrap_or(Vec::new(&env));
 
-        // 2. cari transaksi berdasarkan id
         for i in 0..transactions.len() {
             let old_transaction = transactions.get(i).unwrap();
 
@@ -155,18 +175,15 @@ impl FinanceContract {
         return String::from_str(&env, "Transaksi tidak ditemukan");
     }
 
-    // Fungsi untuk menghapus transaksi berdasarkan id
     pub fn delete_transaction(env: Env, owner: Address, id: u64) -> String {
         owner.require_auth();
 
-        // 1. ambil data transaksi dari storage
         let mut transactions: Vec<Transaction> = env
             .storage()
             .instance()
             .get(&TRANSACTION_DATA)
             .unwrap_or(Vec::new(&env));
 
-        // 2. cari transaksi berdasarkan id
         for i in 0..transactions.len() {
             let transaction = transactions.get(i).unwrap();
 
@@ -184,7 +201,6 @@ impl FinanceContract {
         return String::from_str(&env, "Transaksi tidak ditemukan");
     }
 
-    // Fungsi untuk mendapatkan ringkasan bulanan
     pub fn get_monthly_summary(env: Env, owner: Address, period: u32) -> Summary {
         let transactions: Vec<Transaction> = env
             .storage()
@@ -214,6 +230,76 @@ impl FinanceContract {
             total_expense,
             balance: total_income - total_expense,
         };
+    }
+
+    pub fn get_financial_health(env: Env, owner: Address, period: u32) -> HealthInsight {
+        let transactions: Vec<Transaction> = env
+            .storage()
+            .instance()
+            .get(&TRANSACTION_DATA)
+            .unwrap_or(Vec::new(&env));
+
+        let mut total_income: i128 = 0;
+        let mut total_expense: i128 = 0;
+
+        for i in 0..transactions.len() {
+            let transaction = transactions.get(i).unwrap();
+
+            if transaction.owner == owner && transaction.period == period {
+                if transaction.kind == 1 {
+                    total_income += transaction.amount;
+                }
+
+                if transaction.kind == 2 {
+                    total_expense += transaction.amount;
+                }
+            }
+        }
+
+        if total_income <= 0 {
+            return HealthInsight {
+                saving_rate: 0,
+                score: 0,
+                status: String::from_str(&env, "NoIncome"),
+            };
+        }
+
+        let balance = total_income - total_expense;
+        let saving_rate = (balance * 100) / total_income;
+
+        let mut score: u32 = 0;
+
+        if saving_rate > 0 {
+            if saving_rate >= 100 {
+                score = 100;
+            } else {
+                score = saving_rate as u32;
+            }
+        }
+
+        let status = if score >= 80 {
+            String::from_str(&env, "Healthy")
+        } else if score >= 50 {
+            String::from_str(&env, "Watchful")
+        } else {
+            String::from_str(&env, "Risky")
+        };
+
+        return HealthInsight {
+            saving_rate,
+            score,
+            status,
+        };
+    }
+
+    pub fn get_transaction_count(env: Env) -> u32 {
+        let transactions: Vec<Transaction> = env
+            .storage()
+            .instance()
+            .get(&TRANSACTION_DATA)
+            .unwrap_or(Vec::new(&env));
+
+        return transactions.len();
     }
 }
 
