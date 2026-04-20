@@ -66,3 +66,6 @@ Formula:
 
 ```text
 saving_rate = balance / total_income x 100
+
+
+<img width="1541" height="606" alt="image" src="https://github.com/user-attachments/assets/e9a75840-0b76-4fd1-a24c-c83a1ce736ad" />
